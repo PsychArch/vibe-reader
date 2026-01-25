@@ -1,0 +1,37 @@
+[project]
+name = "vibe-reader"
+version = "0.1.9"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "PsychArch", email = "PsychArch@github.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi==0.128.0",
+    "libtmux==0.53.0",
+    "uvicorn==0.40.0",
+    "Pygments==2.19.2",
+    "markdown==3.10",
+    "dulwich==1.0.0",
+    "pydantic==2.12.5",
+]
+
+[project.scripts]
+vibe-reader = "backend.main:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.0.2",
+    "httpx==0.28.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"frontend" = "frontend"

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Reader</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Vibe Reader">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="nav-controls">
+                <div class="nav-section nav-section-main">
+                    <button id="toggleSidebar" class="nav-btn">☰</button>
+                    <button id="tmuxBtn" class="nav-btn tab-btn active">Tmux</button>
+                    <button id="filesBtn" class="nav-btn tab-btn">Files</button>
+                    <button id="configBtn" class="nav-btn tab-btn">Config</button>
+                </div>
+                <div class="nav-spacer"></div>
+                <div id="tmuxNavControls" class="nav-section nav-section-view">
+                    <button id="paneRefreshBtn" class="nav-btn" type="button" aria-label="Refresh tmux pane">Refresh</button>
+                    <button id="autoRefreshBtn" class="nav-btn" type="button">Auto⟳</button>
+                </div>
+                <div id="filesNavControls" class="nav-section nav-section-view hidden" aria-live="polite">
+                    <div id="currentPath" class="current-path" role="status">.</div>
+                    <button id="diffModeToggle" class="nav-btn diff-toggle-btn" type="button" aria-pressed="false">
+                        Diff Off
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tmux View -->
+        <div id="tmuxView" class="view active">
+            <div class="sidebar" id="tmuxSidebar">
+                <div class="sidebar-content">
+                    <div id="tmuxTree" class="tree"></div>
+                </div>
+                <div class="sidebar-footer">
+                    <button id="refreshTmuxTreeBtn" class="sidebar-btn" type="button" aria-label="Refresh tmux tree">Refresh</button>
+                </div>
+            </div>
+            <div class="main-content">
+                <div class="scroll-controls">
+                    <button id="pageUpTmux" class="scroll-btn">Page ↑</button>
+                    <button id="pageDownTmux" class="scroll-btn">Page ↓</button>
+                </div>
+                <pre id="tmuxContent" class="content-box"></pre>
+            </div>
+        </div>
+
+        <!-- Files View -->
+        <div id="filesView" class="view">
+            <div class="sidebar" id="filesSidebar">
+                <div class="sidebar-content">
+                    <div id="fileList" class="file-list"></div>
+                </div>
+                <div class="sidebar-footer">
+                    <button id="loadFiles" class="sidebar-btn" type="button" aria-label="Refresh file list">Refresh</button>
+                </div>
+            </div>
+            <div class="main-content">
+                <div class="scroll-controls">
+                    <button id="pageUpFiles" class="scroll-btn">Page ↑</button>
+                    <button id="pageDownFiles" class="scroll-btn">Page ↓</button>
+                </div>
+                <div id="fileContentContainer" class="content-box code-container code-mode" data-language="TEXT" data-mode="PLAIN" aria-live="polite">
+                    <div id="fileContent" class="file-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Config View -->
+        <div id="configView" class="view">
+            <div class="config-container">
+                <h2>Configuration</h2>
+
+                <div class="config-section">
+                    <h3>Tmux Settings</h3>
+                    <label>
+                        Scrollback lines:
+                        <select id="scrollbackLines">
+                            <option value="200">200</option>
+                            <option value="400" selected>400</option>
+                            <option value="600">600</option>
+                            <option value="800">800</option>
+                            <option value="1000">1000</option>
+                            <option value="1500">1500</option>
+                            <option value="2000">2000</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="config-section">
+                    <h3>Display Settings</h3>
+                    <label>
+                        Font size:
+                        <select id="fontSize">
+                            <option value="12">12px</option>
+                            <option value="14" selected>14px</option>
+                            <option value="16">16px</option>
+                            <option value="18">18px</option>
+                            <option value="20">20px</option>
+                        </select>
+                    </label>
+                    <label>
+                        Markdown font:
+                        <select id="markdownFontFamily">
+                            <option value="serif" selected>Serif</option>
+                            <option value="sans">Sans-serif</option>
+                        </select>
+                    </label>
+                    <label>
+                        <input type="checkbox" id="enableSyntaxHighlighting">
+                        Enable syntax highlighting (slower on eink)
+                    </label>
+                </div>
+
+                <div class="config-section">
+                    <h3>Diff Settings</h3>
+                    <label>
+                        Default diff source:
+                        <select id="diffSourcePreference">
+                            <option value="unstaged" selected>Unstaged</option>
+                            <option value="staged">Staged</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="config-section">
+                    <h3>Auto Refresh</h3>
+                    <label>
+                        Refresh interval (seconds):
+                        <select id="refreshInterval">
+                            <option value="1">1s</option>
+                            <option value="2">2s</option>
+                            <option value="3">3s</option>
+                            <option value="5" selected>5s</option>
+                            <option value="10">10s</option>
+                            <option value="30">30s</option>
+                            <option value="60">60s</option>
+                        </select>
+                    </label>
+                    <label>
+                        Idle timeout (minutes):
+                        <select id="refreshIdleTimeout">
+                            <option value="5">5m</option>
+                            <option value="10" selected>10m</option>
+                            <option value="15">15m</option>
+                            <option value="30">30m</option>
+                        </select>
+                    </label>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

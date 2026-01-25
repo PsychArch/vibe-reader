@@ -1,0 +1,23 @@
+{
+  "name": "Vibe Reader",
+  "short_name": "Vibe Reader",
+  "description": "eink-optimized terminal and file reader",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/favicon.png",
+      "sizes": "any",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

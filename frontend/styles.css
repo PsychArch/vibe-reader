@@ -1,0 +1,682 @@
+/* Eink-optimized styles: high contrast, large fonts, no animations */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+    font-size: 16px;
+    line-height: 1.5;
+    background: white;
+    color: black;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+header {
+    border-bottom: 2px solid black;
+    padding: 8px 10px;
+    flex-shrink: 0;
+}
+
+.nav-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+.nav-section {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+.nav-section-main {
+    gap: 6px;
+}
+
+.nav-section-view {
+    min-width: 0;
+    justify-content: flex-end;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.nav-spacer {
+    flex: 1;
+}
+
+.nav-btn {
+    padding: 8px 14px;
+    font-size: 15px;
+    background: white;
+    color: black;
+    border: 2px solid black;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.nav-btn.active {
+    background: black;
+    color: white;
+}
+
+.tab-btn {
+    border-bottom: none;
+    position: relative;
+    top: 2px;
+    background: #e0e0e0;
+}
+
+.tab-btn.active {
+    background: white;
+    color: black;
+    border-bottom: 2px solid white;
+    font-weight: bold;
+}
+
+.view {
+    display: none;
+    flex: 1;
+    overflow: hidden;
+}
+
+.view.active {
+    display: flex;
+}
+
+.sidebar {
+    width: 180px;
+    border-right: 3px solid black;
+    flex-shrink: 0;
+    transition: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.sidebar-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+#tmuxSidebar .sidebar-content {
+    overflow-y: auto;
+}
+
+#filesSidebar .sidebar-content {
+    overflow: hidden;
+}
+
+#filesSidebar .sidebar-content .file-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sidebar-footer {
+    padding: 10px;
+    border-top: 2px solid black;
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.sidebar-btn {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 14px;
+    background: black;
+    color: white;
+    border: 2px solid black;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.sidebar.collapsed {
+    width: 0;
+    border-right: none;
+    overflow: hidden;
+}
+
+.main-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.scroll-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+    z-index: 10;
+}
+
+.scroll-btn {
+    padding: 8px 12px;
+    font-size: 14px;
+    background: white;
+    color: black;
+    border: 2px solid black;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.scroll-btn:active {
+    background: #e0e0e0;
+}
+
+.content-box {
+    flex: 1;
+    background: white;
+    padding: 15px;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-y: scroll;
+    overflow-x: scroll;
+    margin: 0;
+    scroll-behavior: auto;
+}
+
+.content-box.code-container {
+    position: relative;
+    padding: 18px 22px;
+    white-space: normal;
+    word-wrap: normal;
+    font-size: 14px;
+}
+
+.code-container::before {
+    content: attr(data-language);
+    position: absolute;
+    top: 6px;
+    right: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border: 1px solid black;
+    background: white;
+}
+
+.code-container {
+    counter-reset: line-number;
+}
+
+.code-container .code-line {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    counter-increment: line-number;
+}
+
+.code-container .code-line::before {
+    content: counter(line-number);
+    flex-shrink: 0;
+    width: 4ch;
+    text-align: right;
+    border-right: 2px solid black;
+    padding-right: 8px;
+    color: black;
+    font-weight: 600;
+    user-select: none;
+}
+
+.code-container .line-code {
+    flex: 1;
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: normal;
+    font-weight: 400;
+}
+
+/* Tmux tree */
+.tree {
+    padding: 10px;
+}
+
+.tree-session {
+    margin-bottom: 15px;
+}
+
+.tree-session-name {
+    font-weight: bold;
+    font-size: 15px;
+    padding: 6px 8px;
+    background: black;
+    color: white;
+    margin-bottom: 5px;
+    cursor: default;
+}
+
+.tree-session-name.active {
+    outline: 2px solid white;
+    outline-offset: -2px;
+}
+
+.tree-window {
+    margin-left: 8px;
+    margin-bottom: 6px;
+}
+
+.tree-window-name {
+    font-weight: bold;
+    padding: 5px 8px;
+    background: #f0f0f0;
+    border: 2px solid black;
+    margin-bottom: 3px;
+    font-size: 14px;
+    cursor: default;
+}
+
+.tree-window-name.active {
+    background: black;
+    color: white;
+}
+
+.tree-pane {
+    margin-left: 16px;
+    padding: 5px 8px;
+    border: 2px solid black;
+    background: white;
+    margin-bottom: 3px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.tree-pane:hover {
+    background: #f5f5f5;
+}
+
+.tree-pane.active {
+    background: black;
+    color: white;
+}
+
+.tree-window.single-pane .tree-window-name {
+    cursor: pointer;
+}
+
+/* Files */
+.current-path {
+    flex: 0 1 260px;
+    font-size: 14px;
+    padding: 6px 8px;
+    border: 2px solid black;
+    font-family: inherit;
+    background: white;
+    display: flex;
+    align-items: center;
+    min-height: 34px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.nav-controls .current-path {
+    background: #f8f8f8;
+}
+
+.diff-toggle-btn.nav-btn {
+    min-width: 94px;
+    text-align: center;
+}
+
+.file-list {
+    background: white;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.file-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid black;
+    cursor: pointer;
+    background: white;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.file-item:hover {
+    background: #f0f0f0;
+}
+
+.file-item.dir {
+    font-weight: bold;
+}
+
+.file-item.active {
+    background: black;
+    color: white;
+}
+
+.file-item.active .file-item-badge {
+    background: black;
+    color: white;
+    border-color: white;
+}
+
+.file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.file-badges.hidden {
+    display: none;
+}
+
+.file-item-badge {
+    padding: 1px 6px;
+    border: 2px solid black;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    background: white;
+    color: black;
+}
+
+.file-item-badge--staged {
+    background: #d7f0e0;
+}
+
+.file-item-badge--unstaged {
+    background: #f6e9d0;
+}
+
+.file-item-badge--untracked {
+    background: #e5e5f9;
+}
+
+.file-item-badge--deleted {
+    background: #f5d5d8;
+}
+
+.file-item--deleted .file-name {
+    font-style: italic;
+}
+
+.diff-toggle-btn {
+    padding: 6px 12px;
+    border: 2px solid black;
+    background: white;
+    color: black;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.diff-toggle-btn.active {
+    background: black;
+    color: white;
+}
+.file-content {
+    min-height: 100%;
+}
+
+.code-container.code-mode .code-line {
+    margin-bottom: 2px;
+}
+
+.code-container.markdown-mode {
+    line-height: 1.6;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    padding: 18px 22px;
+}
+
+.code-container.markdown-mode.markdown-font-serif {
+    font-family: 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'Source Han Serif',
+        'Noto Serif CJK TC', 'Noto Serif CJK JP', 'Noto Serif CJK KR', 'Noto Serif',
+        'Source Serif 4', 'Charter', 'Georgia', 'Times New Roman', serif;
+}
+
+.code-container.markdown-mode.markdown-font-sans {
+    font-family: 'Noto Sans SC', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Source Han Sans',
+        'Noto Sans CJK TC', 'Noto Sans CJK JP', 'Noto Sans CJK KR', 'Noto Sans',
+        'Source Sans 3', 'Inter', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+}
+
+.code-container.markdown-mode::before {
+    content: attr(data-language);
+}
+
+.md-content h1,
+.md-content h2,
+.md-content h3 {
+    margin: 18px 0 10px;
+    border-bottom: 2px solid black;
+    padding-bottom: 4px;
+}
+
+.md-content p,
+.md-content ul,
+.md-content ol {
+    margin-bottom: 12px;
+}
+
+.md-content ul,
+.md-content ol {
+    padding-left: 24px;
+}
+
+.md-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+}
+
+.md-content th,
+.md-content td {
+    border: 2px solid black;
+    padding: 6px 8px;
+    text-align: left;
+}
+
+.md-content code {
+    font-family: 'Noto Sans Mono SC', 'Noto Sans Mono CJK SC', 'Source Han Mono SC',
+        'Noto Sans Mono CJK TC', 'Noto Sans Mono CJK JP', 'Noto Sans Mono CJK KR',
+        'Noto Sans Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas',
+        'source-code-pro', monospace;
+    border: 1px solid black;
+    padding: 2px 4px;
+}
+
+.code-container.markdown-mode .md-content .code-container,
+.code-container.markdown-mode .md-content .code-container .line-code,
+.code-container.markdown-mode .md-content .code-container .code-line::before {
+    font-family: 'Noto Sans Mono SC', 'Noto Sans Mono CJK SC', 'Source Han Mono SC',
+        'Noto Sans Mono CJK TC', 'Noto Sans Mono CJK JP', 'Noto Sans Mono CJK KR',
+        'Noto Sans Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas',
+        'source-code-pro', monospace;
+}
+
+[class^="tok-"],
+[class*=" tok-"] {
+    color: inherit;
+}
+
+.tok-k,
+.tok-kr,
+.tok-kt,
+.tok-kp,
+.tok-kn {
+    font-weight: 700;
+}
+
+.tok-s,
+.tok-s1,
+.tok-s2,
+.tok-sa,
+.tok-sb,
+.tok-sd,
+.tok-se,
+.tok-sh,
+.tok-si,
+.tok-sl,
+.tok-ss {
+    font-weight: 600;
+}
+
+.tok-c,
+.tok-c1,
+.tok-cm,
+.tok-cp,
+.tok-cs {
+    color: #333333;
+    font-style: italic;
+}
+
+.tok-nf,
+.tok-na,
+.tok-nb {
+    font-weight: 600;
+}
+
+/* Config view */
+.config-container {
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.config-container h2 {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid black;
+}
+
+.config-section {
+    margin-bottom: 25px;
+}
+
+.config-section h3 {
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.config-section label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.config-section label select,
+.config-section label input {
+    margin-top: 6px;
+    margin-left: 0;
+}
+
+.config-section input,
+.config-section select {
+    margin-left: 10px;
+    padding: 5px;
+    font-size: 14px;
+    border: 2px solid black;
+    font-family: inherit;
+}
+
+.config-save-btn {
+    padding: 10px 20px;
+    font-size: 15px;
+    background: black;
+    color: white;
+    border: 2px solid black;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: white;
+}
+
+::-webkit-scrollbar-thumb {
+    background: black;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: black;
+}
+
+::-webkit-scrollbar-corner {
+    background: white;
+}
+
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: black;
+    color: white;
+    border: 2px solid black;
+    padding: 10px 16px;
+    font-size: 14px;
+    max-width: 80vw;
+    text-align: center;
+    display: none;
+    z-index: 9999;
+}
+
+.toast.visible {
+    display: block;
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+    }
+
+    .nav-btn {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+
+    .content-box {
+        font-size: 12px;
+        padding: 10px;
+    }
+
+    .scroll-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+}
