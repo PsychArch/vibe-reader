@@ -31,6 +31,13 @@ async def manifest():
         media_type="application/manifest+json"
     )
 
+@app.get("/sw.js")
+async def service_worker():
+    return FileResponse(
+        str(FRONTEND_DIR / "sw.js"),
+        media_type="application/javascript"
+    )
+
 def main():
     import argparse
     import uvicorn

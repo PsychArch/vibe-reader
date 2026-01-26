@@ -3,6 +3,7 @@
   "short_name": "Vibe Reader",
   "description": "eink-optimized terminal and file reader",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
