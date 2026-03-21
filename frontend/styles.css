@@ -520,9 +520,59 @@ header {
     padding: 2px 4px;
 }
 
+.md-content .mermaid-block {
+    margin: 16px 0;
+    padding: 12px 14px;
+    border: 2px solid black;
+    background: white;
+}
+
+.md-content .mermaid-block::before {
+    content: attr(data-language);
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.md-content .mermaid-diagram {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+}
+
+.md-content .mermaid-source {
+    margin: 0;
+    white-space: pre;
+    overflow-x: auto;
+    font-family: 'Noto Sans Mono SC', 'Noto Sans Mono CJK SC', 'Source Han Mono SC',
+        'Noto Sans Mono CJK TC', 'Noto Sans Mono CJK JP', 'Noto Sans Mono CJK KR',
+        'Noto Sans Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas',
+        'source-code-pro', monospace;
+}
+
+.md-content .mermaid-block svg {
+    display: block;
+    height: auto;
+}
+
+.md-content .mermaid-block--error {
+    border-style: dashed;
+}
+
+.md-content .mermaid-error {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid black;
+    font-size: 0.92em;
+    font-style: italic;
+}
+
 .code-container.markdown-mode .md-content .code-container,
 .code-container.markdown-mode .md-content .code-container .line-code,
-.code-container.markdown-mode .md-content .code-container .code-line::before {
+.code-container.markdown-mode .md-content .code-container .code-line::before,
+.code-container.markdown-mode .md-content .mermaid-source {
     font-family: 'Noto Sans Mono SC', 'Noto Sans Mono CJK SC', 'Source Han Mono SC',
         'Noto Sans Mono CJK TC', 'Noto Sans Mono CJK JP', 'Noto Sans Mono CJK KR',
         'Noto Sans Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas',
@@ -672,6 +722,12 @@ header {
         width: 200px;
     }
 
+    .scroll-controls {
+        right: 6px;
+        bottom: 6px;
+        gap: 4px;
+    }
+
     .nav-btn {
         padding: 6px 10px;
         font-size: 13px;
@@ -683,8 +739,9 @@ header {
     }
 
     .scroll-btn {
-        width: 52px;
-        height: 52px;
-        font-size: 24px;
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+        background: rgba(255, 255, 255, 0.72);
     }
 }

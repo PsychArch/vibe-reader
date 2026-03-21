@@ -349,7 +349,7 @@ wheels = [
 
 [[package]]
 name = "vibe-reader"
-version = "0.1.11"
+version = "0.1.12"
 source = { editable = "." }
 dependencies = [
     { name = "dulwich" },

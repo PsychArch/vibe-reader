@@ -14,6 +14,7 @@ Read terminal output and code files on your eink device. Designed for comfortabl
 - Navigate directories and view file contents
 - Visual scrollbar showing file length and current position
 - Server-side syntax highlighting for code and Markdown (tables supported)
+- Mermaid diagrams inside Markdown ` ```mermaid ` fences render inline when syntax highlighting is enabled
 
 ### Configuration
 - Adjustable scrollback lines (100-10000)
@@ -74,6 +75,19 @@ VIBE_READER_ROOT=/path/to/project uv run vibe-reader
 **Backend**: FastAPI + libtmux
 **Frontend**: Vanilla JS, eink-optimized CSS
 **Package Manager**: uv
+
+```mermaid
+flowchart LR
+    Browser["Eink Browser"] --> App["FastAPI App"]
+    App --> Tmux["Tmux Router"]
+    App --> Files["Files Router"]
+    App --> Git["Git Router"]
+    App --> Static["Static Frontend"]
+    Tmux --> Session["tmux sessions/panes"]
+    Files --> Repo["project files"]
+    Git --> Repo
+    Static --> Browser
+```
 
 ### Environment Variables
 

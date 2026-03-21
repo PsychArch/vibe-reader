@@ -69,8 +69,12 @@ def _render_markdown(content: str, enable_highlighting: bool = True) -> RenderRe
 
 
 def _replace_markdown_code_block(match: re.Match[str]) -> str:
-    language_hint = match.group(1)
+    language_hint = _normalize_language_hint(match.group(1))
     raw_code = html.unescape(match.group(2))
+
+    if language_hint == "mermaid":
+        return _render_mermaid_block(raw_code)
+
     lexer = None
 
     if language_hint:
@@ -152,6 +156,21 @@ def _compose_code_lines(values: list[str]) -> str:
         safe = value if value else "&nbsp;"
         fragments.append(f'<div class="code-line"><span class="line-code">{safe}</span></div>')
     return "".join(fragments)
+
+
+def _normalize_language_hint(language_hint: Optional[str]) -> str:
+    return language_hint.strip().lower() if language_hint else ""
+
+
+def _render_mermaid_block(raw_code: str) -> str:
+    return (
+        '<div class="mermaid-block" data-language="MERMAID">'
+        '<div class="mermaid-diagram">'
+        f'<pre class="mermaid-source">{html.escape(raw_code)}</pre>'
+        "</div>"
+        '<div class="mermaid-error hidden" role="status" aria-live="polite"></div>'
+        "</div>"
+    )
 
 
 def _split_lines(text: str) -> list[str]:

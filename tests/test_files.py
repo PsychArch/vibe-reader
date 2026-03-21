@@ -51,6 +51,63 @@ def test_markdown_rendering_with_tables(tmp_path):
     assert "code-line" in payload["html"]
 
 
+def test_markdown_mermaid_blocks_render_as_placeholders(tmp_path):
+    project_root = tmp_path / "proj"
+    project_root.mkdir()
+    markdown_file = project_root / "diagram.md"
+    markdown_file.write_text(
+        (
+            "# Diagram\n\n"
+            "```mermaid\n"
+            "graph TD\n"
+            "  Start --> Stop\n"
+            "```\n\n"
+            "```python\n"
+            "print('ok')\n"
+            "```\n"
+        ),
+        encoding="utf-8",
+    )
+
+    with client_with_root(project_root) as client:
+        response = client.get(
+            "/api/files/content",
+            params={"path": str(markdown_file)},
+        )
+
+    payload = response.json()
+
+    assert payload["render_mode"] == "markdown"
+    assert 'class="mermaid-block"' in payload["html"]
+    assert 'data-language="MERMAID"' in payload["html"]
+    assert 'class="mermaid-source"' in payload["html"]
+    assert 'class="code-container code-block"' in payload["html"]
+    assert "graph TD" in payload["html"]
+
+
+def test_markdown_mermaid_blocks_fall_back_to_plain_code_when_highlighting_disabled(tmp_path):
+    project_root = tmp_path / "proj"
+    project_root.mkdir()
+    markdown_file = project_root / "diagram.md"
+    markdown_file.write_text(
+        "```mermaid\ngraph TD\n  Start --> Stop\n```\n",
+        encoding="utf-8",
+    )
+
+    with client_with_root(project_root) as client:
+        response = client.get(
+            "/api/files/content",
+            params={"path": str(markdown_file), "highlight": "false"},
+        )
+
+    payload = response.json()
+
+    assert payload["render_mode"] == "markdown"
+    assert 'class="mermaid-block"' not in payload["html"]
+    assert 'class="code-container plain-code"' in payload["html"]
+    assert "graph TD" in payload["html"]
+
+
 def test_code_rendering_returns_language_metadata(tmp_path):
     project_root = tmp_path / "proj"
     project_root.mkdir()
