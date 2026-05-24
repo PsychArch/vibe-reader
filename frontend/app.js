@@ -50,6 +50,7 @@ let selectedPane = null;
 let selectedFile = null;
 let currentDirectory = '.';
 let shouldAutoScroll = true;
+let pendingTmuxSnapshot = null;
 let sidebarCollapsed = false;
 let refreshIntervalId = null;
 let autoRefreshEnabled = false;
@@ -74,6 +75,35 @@ function isNearBottom(element) {
 
     const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
     return distanceFromBottom <= SCROLL_LOCK_EPSILON;
+}
+
+function getSelectedPaneKey() {
+    if (!selectedPane) {
+        return null;
+    }
+
+    return [
+        String(selectedPane.session),
+        String(selectedPane.window),
+        String(selectedPane.pane)
+    ].join('\u0000');
+}
+
+function clearPendingTmuxSnapshot() {
+    pendingTmuxSnapshot = null;
+}
+
+function applyPendingTmuxSnapshot() {
+    if (!pendingTmuxSnapshot || pendingTmuxSnapshot.paneKey !== getSelectedPaneKey()) {
+        clearPendingTmuxSnapshot();
+        return false;
+    }
+
+    tmuxContent.textContent = pendingTmuxSnapshot.content;
+    clearPendingTmuxSnapshot();
+    tmuxContent.scrollTop = tmuxContent.scrollHeight;
+    shouldAutoScroll = isNearBottom(tmuxContent);
+    return true;
 }
 
 function clearTmuxSelectionHighlights() {
@@ -159,6 +189,9 @@ pageUpTmux.addEventListener('click', () => {
     const target = Math.max(tmuxContent.scrollTop - tmuxContent.clientHeight * 0.9, 0);
     tmuxContent.scrollTop = target;
     shouldAutoScroll = isNearBottom(tmuxContent);
+    if (shouldAutoScroll) {
+        applyPendingTmuxSnapshot();
+    }
 });
 
 pageDownTmux.addEventListener('click', () => {
@@ -166,10 +199,16 @@ pageDownTmux.addEventListener('click', () => {
     const target = Math.min(tmuxContent.scrollTop + tmuxContent.clientHeight * 0.9, maxScrollTop);
     tmuxContent.scrollTop = target;
     shouldAutoScroll = isNearBottom(tmuxContent);
+    if (shouldAutoScroll) {
+        applyPendingTmuxSnapshot();
+    }
 });
 
 tmuxContent.addEventListener('scroll', () => {
     shouldAutoScroll = isNearBottom(tmuxContent);
+    if (shouldAutoScroll) {
+        applyPendingTmuxSnapshot();
+    }
 });
 
 // Page up/down for files
@@ -334,6 +373,7 @@ async function loadTmuxTree() {
                             pane: window.panes[0].index
                         };
                         shouldAutoScroll = true;
+                        clearPendingTmuxSnapshot();
                         loadTmuxContent();
                         applyTmuxSelectionHighlight();
                     };
@@ -355,6 +395,7 @@ async function loadTmuxTree() {
                                 pane: pane.index
                             };
                             shouldAutoScroll = true;
+                            clearPendingTmuxSnapshot();
                             loadTmuxContent();
                             applyTmuxSelectionHighlight();
                         };
@@ -392,6 +433,7 @@ async function loadTmuxTree() {
                     pane: firstPane.index
                 };
                 shouldAutoScroll = true;
+                clearPendingTmuxSnapshot();
                 loadTmuxContent();
                 applyTmuxSelectionHighlight();
                 selectionHighlighted = true;
@@ -409,16 +451,15 @@ async function loadTmuxTree() {
 }
 
 // Load tmux pane content
-async function loadTmuxContent() {
+async function loadTmuxContent({ deferWhenDetached = false } = {}) {
     if (!selectedPane) return;
 
+    const { session, window, pane } = selectedPane;
+    const paneKey = getSelectedPaneKey();
+    const wasPinned = shouldAutoScroll || isNearBottom(tmuxContent);
+    const savedScrollTop = wasPinned ? null : tmuxContent.scrollTop;
+
     try {
-        const { session, window, pane } = selectedPane;
-
-        // Track whether the pane was pinned to the bottom before updating content
-        const wasPinned = shouldAutoScroll || isNearBottom(tmuxContent);
-        const savedScrollTop = wasPinned ? null : tmuxContent.scrollTop;
-
         // Get scrollback config
         const config = JSON.parse(localStorage.getItem('vibeReaderConfig') || '{}');
         const scrollbackLines = config.scrollbackLines || 400;
@@ -427,6 +468,21 @@ async function loadTmuxContent() {
             `/api/tmux/pane/${encodeURIComponent(session)}/${encodeURIComponent(window)}/${encodeURIComponent(pane)}?scrollback=${scrollbackLines}`,
             'load pane content'
         );
+
+        if (paneKey !== getSelectedPaneKey()) {
+            return;
+        }
+
+        const isDetachedNow = !(shouldAutoScroll || isNearBottom(tmuxContent));
+        if (deferWhenDetached && !wasPinned && isDetachedNow) {
+            pendingTmuxSnapshot = {
+                paneKey,
+                content: data.content
+            };
+            return;
+        }
+
+        clearPendingTmuxSnapshot();
         tmuxContent.textContent = data.content;
 
         // Smart scroll positioning based on whether the pane was pinned
@@ -439,6 +495,11 @@ async function loadTmuxContent() {
 
         shouldAutoScroll = isNearBottom(tmuxContent);
     } catch (error) {
+        const isDetachedNow = !(shouldAutoScroll || isNearBottom(tmuxContent));
+        if (deferWhenDetached && !wasPinned && isDetachedNow) {
+            return;
+        }
+
         const detail = error && error.message ? error.message : 'Unknown error';
         const responseDetail = error && typeof error.detail === 'string' ? error.detail : '';
         const missingPane = Boolean(
@@ -907,12 +968,16 @@ async function loadFileContent(path) {
 
 // Refresh current view
 function refreshTmux() {
+    return refreshTmuxWithOptions();
+}
+
+function refreshTmuxWithOptions({ background = false } = {}) {
     if (currentView !== 'tmux') {
         return;
     }
 
     if (selectedPane) {
-        loadTmuxContent();
+        loadTmuxContent({ deferWhenDetached: background });
     } else {
         loadTmuxTree();
     }
@@ -1011,7 +1076,7 @@ function syncAutoRefreshState() {
         if (document.visibilityState === 'hidden') {
             return;
         }
-        refreshTmux();
+        refreshTmuxWithOptions({ background: true });
     }, currentRefreshInterval * 1000);
 
     scheduleIdleTimeout();
