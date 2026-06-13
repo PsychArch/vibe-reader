@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, Iterable, List, Literal, Optional, Sequence, Tuple
+from typing import Dict, List, Literal, Optional, Sequence, Tuple
 
 from dulwich import porcelain
 from dulwich.errors import NotGitRepository
@@ -270,7 +270,7 @@ class GitDiffService:
             return head_bytes
         return None
 
-    def _stat_path(self, path: Path):
+    def _stat_path(self, path: Path) -> os.stat_result | None:
         try:
             return path.stat()
         except FileNotFoundError:

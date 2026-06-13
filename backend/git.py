@@ -6,31 +6,22 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.files import get_project_root, resolve_and_validate_path, resolve_path_within_project
 from backend.rendering import render_text_content
 from backend.services.git_diff_service import (
     DiffTooLargeError,
     GitRepositoryNotFound,
     get_git_diff_service,
 )
+from backend.services.path_service import (
+    PathServiceError,
+    display_path as path_for_response,
+    get_project_root,
+    resolve_and_validate_path,
+    resolve_path_within_project,
+    scope_from_path,
+)
 
 router = APIRouter(prefix="/api/git", tags=["git"])
-
-
-def _path_for_response(project_root: Path, target: Path) -> str:
-    try:
-        relative = target.relative_to(project_root).as_posix()
-    except ValueError:
-        return target.as_posix()
-    return "." if relative == "." else relative
-
-
-def _scope_from_path(project_root: Path, target: Path) -> Optional[str]:
-    try:
-        relative = target.relative_to(project_root).as_posix()
-    except ValueError:
-        return None
-    return None if relative in {"", "."} else relative
 
 
 @router.get("/status")
@@ -43,8 +34,11 @@ async def git_status(
 
     scope: Optional[str] = None
     if path:
-        target = resolve_and_validate_path(path)
-        scope = _scope_from_path(project_root, target)
+        try:
+            target = resolve_and_validate_path(path, project_root=project_root)
+        except PathServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+        scope = scope_from_path(project_root, target)
 
     try:
         summary = service.status_summary(include_untracked=include_untracked, scope=scope)
@@ -92,8 +86,11 @@ async def _diff_response(path: Optional[str], staged: bool) -> dict:
     target_path: Optional[Path] = None
     scope: Optional[str] = None
     if path:
-        target_path = resolve_path_within_project(path)
-        scope = _scope_from_path(project_root, target_path)
+        try:
+            target_path = resolve_path_within_project(path, project_root=project_root)
+        except PathServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+        scope = scope_from_path(project_root, target_path)
 
     try:
         diff_result = service.diff_staged(scope) if staged else service.diff_unstaged(scope)
@@ -103,8 +100,8 @@ async def _diff_response(path: Optional[str], staged: bool) -> dict:
         raise HTTPException(status_code=413, detail=str(exc)) from exc
 
     payload = _render_diff(diff_result.text, diff_result.source)
-    display_path = diff_result.path
-    if display_path is None and target_path is not None:
-        display_path = _path_for_response(project_root, target_path)
-    payload.update({"path": display_path})
+    response_path = diff_result.path
+    if response_path is None and target_path is not None:
+        response_path = path_for_response(project_root, target_path)
+    payload.update({"path": response_path})
     return payload

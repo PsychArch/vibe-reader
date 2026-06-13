@@ -1,7 +1,7 @@
 [project]
 name = "vibe-reader"
-version = "0.1.13"
-description = "Add your description here"
+version = "0.2.0"
+description = "E-ink friendly web reader for tmux panes, project files, Markdown, and git diffs."
 readme = "README.md"
 authors = [
     { name = "PsychArch", email = "PsychArch@github.com" }

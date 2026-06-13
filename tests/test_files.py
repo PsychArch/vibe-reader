@@ -13,6 +13,15 @@ if str(PROJECT_ROOT) not in sys.path:
 from fastapi.testclient import TestClient
 
 from backend.main import app
+from backend.services.path_service import (
+    PathOutsideProjectError,
+    ProjectPathNotFoundError,
+    ProjectPathTypeError,
+    display_path,
+    resolve_and_validate_path,
+    resolve_path_within_project,
+    scope_from_path,
+)
 
 
 @contextmanager
@@ -174,6 +183,47 @@ def test_relative_paths_resolve_from_project_root(tmp_path):
     assert response.status_code == 200
     payload = response.json()
     assert payload["path"] == "note.txt"
+
+
+def test_path_service_resolves_absolute_path_inside_root(tmp_path):
+    project_root = tmp_path / "proj"
+    project_root.mkdir()
+    note = project_root / "note.txt"
+    note.write_text("notes", encoding="utf-8")
+
+    resolved = resolve_path_within_project(str(note), project_root=project_root)
+
+    assert resolved == note.resolve()
+    assert display_path(project_root.resolve(), resolved) == "note.txt"
+    assert scope_from_path(project_root.resolve(), resolved) == "note.txt"
+
+
+def test_path_service_rejects_outside_root(tmp_path):
+    project_root = tmp_path / "proj"
+    project_root.mkdir()
+    outside = tmp_path / "outside.txt"
+    outside.write_text("nope", encoding="utf-8")
+
+    with pytest.raises(PathOutsideProjectError, match="Access denied"):
+        resolve_path_within_project(str(outside), project_root=project_root)
+
+
+def test_path_service_reports_missing_and_wrong_type(tmp_path):
+    project_root = tmp_path / "proj"
+    project_root.mkdir()
+    file_path = project_root / "note.txt"
+    file_path.write_text("notes", encoding="utf-8")
+    dir_path = project_root / "docs"
+    dir_path.mkdir()
+
+    with pytest.raises(ProjectPathNotFoundError, match="Path not found"):
+        resolve_and_validate_path("missing.txt", project_root=project_root)
+
+    with pytest.raises(ProjectPathTypeError, match="Path is not a directory"):
+        resolve_and_validate_path("note.txt", must_be_dir=True, project_root=project_root)
+
+    with pytest.raises(ProjectPathTypeError, match="Path is a directory"):
+        resolve_and_validate_path("docs", must_be_file=True, project_root=project_root)
 
 
 def test_startup_fails_when_root_is_not_directory(tmp_path):
