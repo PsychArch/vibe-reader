@@ -142,7 +142,7 @@ export function createFileRow({ kind, path, name, statusFlags = [], active = fal
         }
     }
 
-    fileDiv.onclick = onClick;
+    fileDiv.addEventListener('click', onClick);
     return fileDiv;
 }
 

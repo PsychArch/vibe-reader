@@ -2,10 +2,10 @@ import { escapeHtml } from './ui.js';
 
 const MERMAID_MODULE_PATH = '/static/vendor/mermaid.esm.min.mjs';
 
-export function createMermaidRenderer({ dom, state }) {
+export function createMermaidRenderer({ dom, state, getCurrentRenderToken }) {
     async function loadMermaidModule() {
-        if (!state.mermaidModulePromise) {
-            state.mermaidModulePromise = import(MERMAID_MODULE_PATH)
+        if (!state.modulePromise) {
+            state.modulePromise = import(MERMAID_MODULE_PATH)
                 .then((module) => {
                     const mermaid = module.default || module;
                     mermaid.initialize({
@@ -51,12 +51,12 @@ export function createMermaidRenderer({ dom, state }) {
                     return mermaid;
                 })
                 .catch((error) => {
-                    state.mermaidModulePromise = null;
+                    state.modulePromise = null;
                     throw error;
                 });
         }
 
-        return state.mermaidModulePromise;
+        return state.modulePromise;
     }
 
     function getMermaidSource(block) {
@@ -157,11 +157,11 @@ export function createMermaidRenderer({ dom, state }) {
         try {
             await mermaid.parse(source);
             const { svg, bindFunctions } = await mermaid.render(
-                `mermaid-diagram-${renderToken}-${++state.mermaidDiagramId}`,
+                `mermaid-diagram-${renderToken}-${++state.diagramId}`,
                 source
             );
 
-            if (renderToken !== state.currentFileRenderToken || !dom.fileContent.contains(block)) {
+            if (renderToken !== getCurrentRenderToken() || !dom.fileContent.contains(block)) {
                 return;
             }
 
@@ -170,7 +170,7 @@ export function createMermaidRenderer({ dom, state }) {
             bindFunctions?.(diagramElement);
             block.classList.add('mermaid-block--rendered');
         } catch (error) {
-            if (renderToken !== state.currentFileRenderToken || !dom.fileContent.contains(block)) {
+            if (renderToken !== getCurrentRenderToken() || !dom.fileContent.contains(block)) {
                 return;
             }
 
@@ -192,7 +192,7 @@ export function createMermaidRenderer({ dom, state }) {
         try {
             mermaid = await loadMermaidModule();
         } catch (error) {
-            if (renderToken !== state.currentFileRenderToken) {
+            if (renderToken !== getCurrentRenderToken()) {
                 return;
             }
 
@@ -205,12 +205,12 @@ export function createMermaidRenderer({ dom, state }) {
             return;
         }
 
-        if (renderToken !== state.currentFileRenderToken) {
+        if (renderToken !== getCurrentRenderToken()) {
             return;
         }
 
         for (const block of blocks) {
-            if (renderToken !== state.currentFileRenderToken || !dom.fileContent.contains(block)) {
+            if (renderToken !== getCurrentRenderToken() || !dom.fileContent.contains(block)) {
                 return;
             }
 

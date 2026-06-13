@@ -4,6 +4,13 @@ import { createContentRenderer } from './content-renderer.js';
 import { createFilesViewController } from './files-view.js';
 import { createGitStatusStore } from './file-status.js';
 import { createMermaidRenderer } from './mermaid-renderer.js';
+import {
+    createConfigState,
+    createFilesState,
+    createMermaidState,
+    createTmuxState,
+    createViewState
+} from './state.js';
 import { createTmuxViewController } from './tmux-view.js';
 import { createToastController, updateViewControlsVisibility } from './ui.js';
 
@@ -47,49 +54,38 @@ const dom = {
     diffModeToggle: document.getElementById('diffModeToggle')
 };
 
-const state = {
-    currentView: 'tmux',
-    selectedPane: null,
-    selectedFile: null,
-    currentDirectory: '.',
-    shouldAutoScroll: true,
-    pendingTmuxSnapshot: null,
-    sidebarCollapsed: false,
-    refreshIntervalId: null,
-    autoRefreshEnabled: false,
-    currentRefreshInterval: 5,
-    idleTimeoutId: null,
-    currentIdleTimeoutMinutes: 10,
-    configInitialized: false,
-    diffModeEnabled: false,
-    diffSource: 'unstaged',
-    currentDiffRequestId: 0,
-    selectedFileIsDeleted: false,
-    currentFileRenderToken: 0,
-    mermaidModulePromise: null,
-    mermaidDiagramId: 0
-};
+const viewState = createViewState();
+const tmuxState = createTmuxState();
+const filesState = createFilesState();
+const configState = createConfigState();
+const mermaidState = createMermaidState();
 
 const { showToast } = createToastController();
-const mermaidRenderer = createMermaidRenderer({ dom, state });
+const mermaidRenderer = createMermaidRenderer({
+    dom,
+    state: mermaidState,
+    getCurrentRenderToken: () => filesState.currentFileRenderToken
+});
 const contentRenderer = createContentRenderer({
     dom,
-    state,
+    state: filesState,
     mermaidRenderer,
-    isDiffModeEnabled: () => state.diffModeEnabled
+    isDiffModeEnabled: () => filesState.diffModeEnabled
 });
 const gitStatus = createGitStatusStore({ loadGitStatus: api.loadGitStatus });
 
 const tmuxController = createTmuxViewController({
     dom,
-    state,
+    state: tmuxState,
+    viewState,
     api,
     callbacks: { showToast }
 });
 
 const filesController = createFilesViewController({
     dom,
-    state,
+    state: filesState,
+    viewState,
     api,
     contentRenderer,
     gitStatus,
@@ -101,14 +97,19 @@ const filesController = createFilesViewController({
 
 const configController = createConfigController({
     dom,
-    state,
+    state: configState,
     callbacks: {
-        onConfigLoaded: () => {
+        onConfigLoaded: (config) => {
+            tmuxController.applyConfig(config);
+            filesController.applyConfig(config);
             tmuxController.disableAutoRefresh();
             tmuxController.syncAutoRefreshState();
         },
         onConfigApplied: (config, { notify }) => {
-            if (state.autoRefreshEnabled) {
+            tmuxController.applyConfig(config);
+            filesController.applyConfig(config);
+
+            if (tmuxState.autoRefreshEnabled) {
                 tmuxController.syncAutoRefreshState();
             } else {
                 tmuxController.stopAutoRefreshTimers();
@@ -123,12 +124,13 @@ const configController = createConfigController({
 
             tmuxController.refreshTmux();
             filesController.handleConfigChanged();
-        }
+        },
+        getCurrentIdleTimeout: () => tmuxState.currentIdleTimeoutMinutes
     }
 });
 
 function setView(view) {
-    state.currentView = view;
+    viewState.currentView = view;
     tmuxController.markInteraction();
 
     dom.tmuxView.classList.toggle('active', view === 'tmux');
@@ -139,14 +141,14 @@ function setView(view) {
     dom.filesBtn.classList.toggle('active', view === 'files');
     dom.configBtn.classList.toggle('active', view === 'config');
 
-    updateViewControlsVisibility(dom, state.currentView);
+    updateViewControlsVisibility(dom, viewState.currentView);
 
     if (view === 'tmux') {
-        dom.tmuxSidebar.classList.toggle('collapsed', state.sidebarCollapsed);
+        dom.tmuxSidebar.classList.toggle('collapsed', viewState.sidebarCollapsed);
         dom.filesSidebar.classList.remove('collapsed');
         tmuxController.loadTmuxTree();
     } else if (view === 'files') {
-        state.sidebarCollapsed = false;
+        viewState.sidebarCollapsed = false;
         dom.filesSidebar.classList.remove('collapsed');
         dom.tmuxSidebar.classList.remove('collapsed');
         filesController.loadFileList();
@@ -160,11 +162,11 @@ function setView(view) {
 
 function setupAppListeners() {
     dom.toggleSidebar.addEventListener('click', () => {
-        state.sidebarCollapsed = !state.sidebarCollapsed;
-        if (state.currentView === 'tmux') {
-            dom.tmuxSidebar.classList.toggle('collapsed', state.sidebarCollapsed);
+        viewState.sidebarCollapsed = !viewState.sidebarCollapsed;
+        if (viewState.currentView === 'tmux') {
+            dom.tmuxSidebar.classList.toggle('collapsed', viewState.sidebarCollapsed);
         } else {
-            dom.filesSidebar.classList.toggle('collapsed', state.sidebarCollapsed);
+            dom.filesSidebar.classList.toggle('collapsed', viewState.sidebarCollapsed);
             requestAnimationFrame(() => {
                 mermaidRenderer.refreshVisibleMermaidDiagrams();
             });
@@ -176,7 +178,7 @@ function setupAppListeners() {
     dom.configBtn.addEventListener('click', () => setView('config'));
 
     window.addEventListener('resize', () => {
-        if (state.currentView === 'files') {
+        if (viewState.currentView === 'files') {
             mermaidRenderer.refreshVisibleMermaidDiagrams();
         }
     });
@@ -218,8 +220,8 @@ tmuxController.setupListeners();
 filesController.setupListeners();
 setupAppListeners();
 
-updateViewControlsVisibility(dom, state.currentView);
-filesController.setCurrentDirectory(state.currentDirectory);
+updateViewControlsVisibility(dom, viewState.currentView);
+filesController.setCurrentDirectory(filesState.currentDirectory);
 filesController.updateDiffModeUI();
 configController.loadConfig();
 registerServiceWorker();

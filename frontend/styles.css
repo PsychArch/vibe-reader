@@ -273,6 +273,14 @@ header {
     padding: 10px;
 }
 
+.tree-status {
+    padding: 20px;
+}
+
+.tree-status--error {
+    color: red;
+}
+
 .tree-session {
     margin-bottom: 15px;
 }
@@ -385,6 +393,14 @@ header {
 
 .file-item.dir {
     font-weight: bold;
+}
+
+.file-list-status {
+    cursor: default;
+}
+
+.file-list-status--error {
+    color: red;
 }
 
 .file-item.active {

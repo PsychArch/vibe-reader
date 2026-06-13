@@ -8,7 +8,14 @@ import {
 } from './file-status.js';
 import { pageScroll } from './ui.js';
 
-export function createFilesViewController({ dom, state, api, contentRenderer, gitStatus, callbacks }) {
+export function createFilesViewController({ dom, state, viewState, api, contentRenderer, gitStatus, callbacks }) {
+    function createFileListMessage(message, { error = false } = {}) {
+        const row = document.createElement('div');
+        row.className = error ? 'file-item file-list-status file-list-status--error' : 'file-item file-list-status';
+        row.textContent = message;
+        return row;
+    }
+
     function updateCurrentPathDisplay() {
         if (!dom.currentPathDisplay) {
             return;
@@ -146,7 +153,7 @@ export function createFilesViewController({ dom, state, api, contentRenderer, gi
             }
 
             const files = await api.loadFiles(path);
-            dom.fileList.innerHTML = '';
+            dom.fileList.replaceChildren();
             let appended = false;
 
             if (path !== '.' && path !== '/') {
@@ -216,7 +223,7 @@ export function createFilesViewController({ dom, state, api, contentRenderer, gi
             });
 
             if (!appended) {
-                dom.fileList.innerHTML = '<div class="file-item">Empty directory</div>';
+                dom.fileList.replaceChildren(createFileListMessage('Empty directory'));
             } else {
                 highlightSelectedFile();
             }
@@ -229,7 +236,7 @@ export function createFilesViewController({ dom, state, api, contentRenderer, gi
                 }
             }
         } catch (error) {
-            dom.fileList.innerHTML = `<div class="file-item" style="color: red;">Error: ${error.message}</div>`;
+            dom.fileList.replaceChildren(createFileListMessage(`Error: ${error.message}`, { error: true }));
         }
     }
 
@@ -247,7 +254,7 @@ export function createFilesViewController({ dom, state, api, contentRenderer, gi
     }
 
     function handleConfigChanged() {
-        if (state.currentView !== 'files') {
+        if (viewState.currentView !== 'files') {
             return;
         }
 
@@ -260,6 +267,10 @@ export function createFilesViewController({ dom, state, api, contentRenderer, gi
         } else if (state.selectedFile) {
             loadFileContent(state.selectedFile);
         }
+    }
+
+    function applyConfig(config) {
+        state.diffSource = config.diffSourcePreference;
     }
 
     function setupListeners() {
@@ -287,6 +298,7 @@ export function createFilesViewController({ dom, state, api, contentRenderer, gi
     }
 
     return {
+        applyConfig,
         handleConfigChanged,
         loadFileContent,
         loadFileList,

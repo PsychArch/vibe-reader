@@ -1,13 +1,23 @@
-import { escapeHtml } from './ui.js';
-
 export function createContentRenderer({ dom, state, mermaidRenderer, isDiffModeEnabled }) {
+    function createCodeLine(text) {
+        const line = document.createElement('div');
+        line.className = 'code-line';
+
+        const code = document.createElement('span');
+        code.className = 'line-code';
+        code.textContent = text;
+        line.appendChild(code);
+
+        return line;
+    }
+
     function resetFilePreview() {
         if (!dom.fileContentContainer || !dom.fileContent) {
             return;
         }
 
         state.currentFileRenderToken += 1;
-        dom.fileContent.innerHTML = '';
+        dom.fileContent.replaceChildren();
         dom.fileContentContainer.dataset.language = 'TEXT';
         dom.fileContentContainer.dataset.mode = 'PLAIN';
         dom.fileContentContainer.classList.remove('markdown-mode');
@@ -26,7 +36,7 @@ export function createContentRenderer({ dom, state, mermaidRenderer, isDiffModeE
         dom.fileContentContainer.dataset.mode = 'PLAIN';
         dom.fileContentContainer.classList.remove('markdown-mode');
         dom.fileContentContainer.classList.add('code-mode');
-        dom.fileContent.innerHTML = `<div class="code-line"><span class="line-code">${escapeHtml(message)}</span></div>`;
+        dom.fileContent.replaceChildren(createCodeLine(message));
     }
 
     function renderDiffPrompt(message) {

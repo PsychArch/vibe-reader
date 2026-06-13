@@ -151,12 +151,6 @@ function readConfigFromForm(dom, currentIdleTimeoutMinutes) {
 }
 
 export function createConfigController({ dom, state, callbacks }) {
-    function syncConfigState(config) {
-        state.currentRefreshInterval = config.refreshInterval;
-        state.currentIdleTimeoutMinutes = config.refreshIdleMinutes;
-        state.diffSource = config.diffSourcePreference;
-    }
-
     function loadConfig() {
         const config = readConfig();
         syncForm(dom, config);
@@ -165,16 +159,15 @@ export function createConfigController({ dom, state, callbacks }) {
             refreshIdleMinutes: parseInt(dom.refreshIdleTimeoutSelect?.value, 10) || config.refreshIdleMinutes
         };
         applyContentPreferences(dom, effectiveConfig);
-        syncConfigState(effectiveConfig);
-        state.configInitialized = true;
+        state.initialized = true;
         callbacks.onConfigLoaded?.(effectiveConfig);
         return effectiveConfig;
     }
 
     function applyConfig({ notify = true } = {}) {
-        const config = writeConfig(readConfigFromForm(dom, state.currentIdleTimeoutMinutes));
+        const currentIdleTimeout = callbacks.getCurrentIdleTimeout?.() ?? DEFAULT_CONFIG.refreshIdleMinutes;
+        const config = writeConfig(readConfigFromForm(dom, currentIdleTimeout));
         applyContentPreferences(dom, config);
-        syncConfigState(config);
         callbacks.onConfigApplied?.(config, { notify });
         return config;
     }
@@ -196,7 +189,7 @@ export function createConfigController({ dom, state, callbacks }) {
             }
 
             element.addEventListener(eventName, () => {
-                if (!state.configInitialized) {
+                if (!state.initialized) {
                     return;
                 }
 
