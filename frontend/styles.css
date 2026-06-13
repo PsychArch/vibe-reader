@@ -76,6 +76,17 @@ header {
     color: white;
 }
 
+#autoRefreshBtn {
+    min-width: 64px;
+    text-align: center;
+}
+
+.nav-btn.paused {
+    background: #d0d0d0;
+    color: black;
+    font-weight: bold;
+}
+
 .tab-btn {
     border-bottom: none;
     position: relative;
@@ -731,6 +742,10 @@ header {
     .nav-btn {
         padding: 6px 10px;
         font-size: 13px;
+    }
+
+    #autoRefreshBtn {
+        min-width: 58px;
     }
 
     .content-box {

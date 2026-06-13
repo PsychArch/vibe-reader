@@ -91,6 +91,7 @@ function getSelectedPaneKey() {
 
 function clearPendingTmuxSnapshot() {
     pendingTmuxSnapshot = null;
+    syncAutoRefreshButtonState();
 }
 
 function hasActiveTmuxTextSelection() {
@@ -130,13 +131,43 @@ function hasActiveTmuxTextSelection() {
     return false;
 }
 
+function getTmuxUpdateHoldReason() {
+    if (currentView !== 'tmux' || !selectedPane) {
+        return null;
+    }
+
+    if (hasActiveTmuxTextSelection()) {
+        return 'selection';
+    }
+
+    if (!isNearBottom(tmuxContent)) {
+        return 'scroll';
+    }
+
+    return null;
+}
+
+function isTmuxUpdateHeld() {
+    return getTmuxUpdateHoldReason() !== null;
+}
+
+function canApplyTmuxSnapshot(snapshot = pendingTmuxSnapshot) {
+    return Boolean(
+        snapshot &&
+            snapshot.paneKey === getSelectedPaneKey() &&
+            currentView === 'tmux' &&
+            !isTmuxUpdateHeld()
+    );
+}
+
 function applyPendingTmuxSnapshot() {
     if (!pendingTmuxSnapshot || pendingTmuxSnapshot.paneKey !== getSelectedPaneKey()) {
         clearPendingTmuxSnapshot();
         return false;
     }
 
-    if (hasActiveTmuxTextSelection()) {
+    if (!canApplyTmuxSnapshot()) {
+        syncAutoRefreshButtonState();
         return false;
     }
 
@@ -144,20 +175,14 @@ function applyPendingTmuxSnapshot() {
     clearPendingTmuxSnapshot();
     tmuxContent.scrollTop = tmuxContent.scrollHeight;
     shouldAutoScroll = isNearBottom(tmuxContent);
+    syncAutoRefreshButtonState();
     return true;
 }
 
 function applyPendingTmuxSnapshotWhenIdle() {
-    if (currentView !== 'tmux') {
-        return false;
-    }
-
-    if (hasActiveTmuxTextSelection()) {
-        return false;
-    }
-
     shouldAutoScroll = isNearBottom(tmuxContent);
-    if (!shouldAutoScroll) {
+    if (!canApplyTmuxSnapshot()) {
+        syncAutoRefreshButtonState();
         return false;
     }
 
@@ -250,6 +275,7 @@ pageUpTmux.addEventListener('click', () => {
     if (shouldAutoScroll) {
         applyPendingTmuxSnapshotWhenIdle();
     }
+    syncAutoRefreshButtonState();
 });
 
 pageDownTmux.addEventListener('click', () => {
@@ -260,6 +286,7 @@ pageDownTmux.addEventListener('click', () => {
     if (shouldAutoScroll) {
         applyPendingTmuxSnapshotWhenIdle();
     }
+    syncAutoRefreshButtonState();
 });
 
 tmuxContent.addEventListener('scroll', () => {
@@ -267,6 +294,7 @@ tmuxContent.addEventListener('scroll', () => {
     if (shouldAutoScroll) {
         applyPendingTmuxSnapshotWhenIdle();
     }
+    syncAutoRefreshButtonState();
 });
 
 // Page up/down for files
@@ -392,6 +420,7 @@ async function loadTmuxTree() {
             selectedPane = null;
             tmuxTree.innerHTML = '<div style="padding: 20px;">No tmux sessions found</div>';
             tmuxContent.textContent = '';
+            syncAutoRefreshButtonState();
             return;
         }
 
@@ -434,6 +463,7 @@ async function loadTmuxTree() {
                         clearPendingTmuxSnapshot();
                         loadTmuxContent();
                         applyTmuxSelectionHighlight();
+                        syncAutoRefreshButtonState();
                     };
                 } else {
                     // Multiple panes - show them
@@ -456,6 +486,7 @@ async function loadTmuxTree() {
                             clearPendingTmuxSnapshot();
                             loadTmuxContent();
                             applyTmuxSelectionHighlight();
+                            syncAutoRefreshButtonState();
                         };
 
                         windowDiv.appendChild(paneDiv);
@@ -494,6 +525,7 @@ async function loadTmuxTree() {
                 clearPendingTmuxSnapshot();
                 loadTmuxContent();
                 applyTmuxSelectionHighlight();
+                syncAutoRefreshButtonState();
                 selectionHighlighted = true;
                 break;
             }
@@ -502,6 +534,7 @@ async function loadTmuxTree() {
         if (!selectionHighlighted) {
             clearTmuxSelectionHighlights();
             tmuxContent.textContent = '';
+            syncAutoRefreshButtonState();
         }
     } catch (error) {
         tmuxTree.innerHTML = `<div style="padding: 20px; color: red;">Error: ${error.message}</div>`;
@@ -531,21 +564,21 @@ async function loadTmuxContent({ deferWhenDetached = false } = {}) {
             return;
         }
 
-        const isDetachedNow = !(shouldAutoScroll || isNearBottom(tmuxContent));
-        const hasActiveSelectionNow = hasActiveTmuxTextSelection();
-        if (deferWhenDetached && (hasActiveSelectionNow || (!wasPinned && isDetachedNow))) {
+        if (deferWhenDetached && isTmuxUpdateHeld()) {
             pendingTmuxSnapshot = {
                 paneKey,
                 content: data.content
             };
+            syncAutoRefreshButtonState();
             return;
         }
 
         clearPendingTmuxSnapshot();
+        const shouldPinAfterUpdate = wasPinned || isNearBottom(tmuxContent);
         tmuxContent.textContent = data.content;
 
         // Smart scroll positioning based on whether the pane was pinned
-        if (wasPinned) {
+        if (shouldPinAfterUpdate) {
             tmuxContent.scrollTop = tmuxContent.scrollHeight;
         } else if (savedScrollTop !== null) {
             const maxScrollTop = Math.max(tmuxContent.scrollHeight - tmuxContent.clientHeight, 0);
@@ -553,9 +586,10 @@ async function loadTmuxContent({ deferWhenDetached = false } = {}) {
         }
 
         shouldAutoScroll = isNearBottom(tmuxContent);
+        syncAutoRefreshButtonState();
     } catch (error) {
-        const isDetachedNow = !(shouldAutoScroll || isNearBottom(tmuxContent));
-        if (deferWhenDetached && (hasActiveTmuxTextSelection() || (!wasPinned && isDetachedNow))) {
+        if (deferWhenDetached && isTmuxUpdateHeld()) {
+            syncAutoRefreshButtonState();
             return;
         }
 
@@ -569,6 +603,7 @@ async function loadTmuxContent({ deferWhenDetached = false } = {}) {
 
         if (missingPane) {
             selectedPane = null;
+            syncAutoRefreshButtonState();
             try {
                 await loadTmuxTree();
             } catch (refreshError) {
@@ -578,6 +613,7 @@ async function loadTmuxContent({ deferWhenDetached = false } = {}) {
         }
 
         tmuxContent.textContent = `Error: ${detail}`;
+        syncAutoRefreshButtonState();
     }
 }
 
@@ -1027,7 +1063,7 @@ async function loadFileContent(path) {
 
 // Refresh current view
 function refreshTmux() {
-    return refreshTmuxWithOptions({ background: hasActiveTmuxTextSelection() });
+    return refreshTmuxWithOptions({ background: getTmuxUpdateHoldReason() === 'selection' });
 }
 
 function refreshTmuxWithOptions({ background = false } = {}) {
@@ -1079,10 +1115,46 @@ function stopAutoRefreshTimers() {
     }
 }
 
+function syncAutoRefreshButtonState() {
+    if (!autoRefreshBtn) {
+        return;
+    }
+
+    const holdReason = autoRefreshEnabled ? getTmuxUpdateHoldReason() : null;
+    const mode = !autoRefreshEnabled ? 'off' : holdReason ? 'paused' : 'on';
+    const labels = {
+        off: {
+            text: 'Auto⟳',
+            pressed: 'false',
+            description: 'Auto refresh is off. Click to enable auto refresh.'
+        },
+        on: {
+            text: 'Auto⟳',
+            pressed: 'true',
+            description: 'Auto refresh is on. Click to disable auto refresh.'
+        },
+        paused: {
+            text: 'Auto⟳',
+            pressed: 'mixed',
+            description: holdReason === 'selection'
+                ? 'Auto refresh is paused while tmux text is selected. Click to disable auto refresh.'
+                : 'Auto refresh is paused while the tmux pane is scrolled up. Click to disable auto refresh.'
+        }
+    };
+    const state = labels[mode];
+
+    autoRefreshBtn.textContent = state.text;
+    autoRefreshBtn.classList.toggle('active', mode === 'on');
+    autoRefreshBtn.classList.toggle('paused', mode === 'paused');
+    autoRefreshBtn.setAttribute('aria-pressed', state.pressed);
+    autoRefreshBtn.setAttribute('aria-label', state.description);
+    autoRefreshBtn.title = state.description;
+}
+
 function disableAutoRefresh(message) {
     autoRefreshEnabled = false;
-    autoRefreshBtn.classList.remove('active');
     stopAutoRefreshTimers();
+    syncAutoRefreshButtonState();
 
     if (message) {
         showToast(message);
@@ -1096,7 +1168,6 @@ function enableAutoRefresh() {
     }
 
     autoRefreshEnabled = true;
-    autoRefreshBtn.classList.add('active');
     markInteraction();
     syncAutoRefreshState();
 }
@@ -1112,7 +1183,7 @@ function scheduleIdleTimeout() {
     }
 
     idleTimeoutId = setTimeout(() => {
-        disableAutoRefresh(`Auto refresh paused after ${currentIdleTimeoutMinutes} minutes of inactivity.`);
+        disableAutoRefresh(`Auto refresh disabled after ${currentIdleTimeoutMinutes} minutes of inactivity.`);
     }, currentIdleTimeoutMinutes * 60 * 1000);
 }
 
@@ -1122,6 +1193,7 @@ function markInteraction() {
 
 function syncAutoRefreshState() {
     stopAutoRefreshTimers();
+    syncAutoRefreshButtonState();
 
     if (!autoRefreshEnabled || currentRefreshInterval <= 0 || currentView !== 'tmux') {
         return;
@@ -1139,6 +1211,7 @@ function syncAutoRefreshState() {
     }, currentRefreshInterval * 1000);
 
     scheduleIdleTimeout();
+    syncAutoRefreshButtonState();
 }
 
 function updateViewControlsVisibility() {
@@ -1181,6 +1254,7 @@ if (paneRefreshBtn) {
 function checkPendingTmuxSnapshotAfterSelectionChange() {
     requestAnimationFrame(() => {
         applyPendingTmuxSnapshotWhenIdle();
+        syncAutoRefreshButtonState();
     });
 }
 
@@ -1552,7 +1626,7 @@ function applyConfig({ notify = true } = {}) {
         stopAutoRefreshTimers();
     }
 
-    autoRefreshBtn.classList.toggle('active', autoRefreshEnabled);
+    syncAutoRefreshButtonState();
 
     markInteraction();
 
