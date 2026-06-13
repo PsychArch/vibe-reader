@@ -93,9 +93,50 @@ function clearPendingTmuxSnapshot() {
     pendingTmuxSnapshot = null;
 }
 
+function hasActiveTmuxTextSelection() {
+    if (!tmuxContent || typeof window.getSelection !== 'function') {
+        return false;
+    }
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        return false;
+    }
+
+    for (let index = 0; index < selection.rangeCount; index += 1) {
+        const range = selection.getRangeAt(index);
+        if (range.collapsed) {
+            continue;
+        }
+
+        const commonAncestor = range.commonAncestorContainer;
+        const commonElement = commonAncestor.nodeType === Node.ELEMENT_NODE
+            ? commonAncestor
+            : commonAncestor.parentElement;
+
+        if (commonElement && tmuxContent.contains(commonElement)) {
+            return true;
+        }
+
+        try {
+            if (range.intersectsNode(tmuxContent)) {
+                return true;
+            }
+        } catch {
+            // Some older engines can throw for detached nodes.
+        }
+    }
+
+    return false;
+}
+
 function applyPendingTmuxSnapshot() {
     if (!pendingTmuxSnapshot || pendingTmuxSnapshot.paneKey !== getSelectedPaneKey()) {
         clearPendingTmuxSnapshot();
+        return false;
+    }
+
+    if (hasActiveTmuxTextSelection()) {
         return false;
     }
 
@@ -104,6 +145,23 @@ function applyPendingTmuxSnapshot() {
     tmuxContent.scrollTop = tmuxContent.scrollHeight;
     shouldAutoScroll = isNearBottom(tmuxContent);
     return true;
+}
+
+function applyPendingTmuxSnapshotWhenIdle() {
+    if (currentView !== 'tmux') {
+        return false;
+    }
+
+    if (hasActiveTmuxTextSelection()) {
+        return false;
+    }
+
+    shouldAutoScroll = isNearBottom(tmuxContent);
+    if (!shouldAutoScroll) {
+        return false;
+    }
+
+    return applyPendingTmuxSnapshot();
 }
 
 function clearTmuxSelectionHighlights() {
@@ -190,7 +248,7 @@ pageUpTmux.addEventListener('click', () => {
     tmuxContent.scrollTop = target;
     shouldAutoScroll = isNearBottom(tmuxContent);
     if (shouldAutoScroll) {
-        applyPendingTmuxSnapshot();
+        applyPendingTmuxSnapshotWhenIdle();
     }
 });
 
@@ -200,14 +258,14 @@ pageDownTmux.addEventListener('click', () => {
     tmuxContent.scrollTop = target;
     shouldAutoScroll = isNearBottom(tmuxContent);
     if (shouldAutoScroll) {
-        applyPendingTmuxSnapshot();
+        applyPendingTmuxSnapshotWhenIdle();
     }
 });
 
 tmuxContent.addEventListener('scroll', () => {
     shouldAutoScroll = isNearBottom(tmuxContent);
     if (shouldAutoScroll) {
-        applyPendingTmuxSnapshot();
+        applyPendingTmuxSnapshotWhenIdle();
     }
 });
 
@@ -474,7 +532,8 @@ async function loadTmuxContent({ deferWhenDetached = false } = {}) {
         }
 
         const isDetachedNow = !(shouldAutoScroll || isNearBottom(tmuxContent));
-        if (deferWhenDetached && !wasPinned && isDetachedNow) {
+        const hasActiveSelectionNow = hasActiveTmuxTextSelection();
+        if (deferWhenDetached && (hasActiveSelectionNow || (!wasPinned && isDetachedNow))) {
             pendingTmuxSnapshot = {
                 paneKey,
                 content: data.content
@@ -496,7 +555,7 @@ async function loadTmuxContent({ deferWhenDetached = false } = {}) {
         shouldAutoScroll = isNearBottom(tmuxContent);
     } catch (error) {
         const isDetachedNow = !(shouldAutoScroll || isNearBottom(tmuxContent));
-        if (deferWhenDetached && !wasPinned && isDetachedNow) {
+        if (deferWhenDetached && (hasActiveTmuxTextSelection() || (!wasPinned && isDetachedNow))) {
             return;
         }
 
@@ -968,7 +1027,7 @@ async function loadFileContent(path) {
 
 // Refresh current view
 function refreshTmux() {
-    return refreshTmuxWithOptions();
+    return refreshTmuxWithOptions({ background: hasActiveTmuxTextSelection() });
 }
 
 function refreshTmuxWithOptions({ background = false } = {}) {
@@ -1118,6 +1177,16 @@ if (paneRefreshBtn) {
         markInteraction();
     });
 }
+
+function checkPendingTmuxSnapshotAfterSelectionChange() {
+    requestAnimationFrame(() => {
+        applyPendingTmuxSnapshotWhenIdle();
+    });
+}
+
+document.addEventListener('selectionchange', checkPendingTmuxSnapshotAfterSelectionChange);
+tmuxContent.addEventListener('pointerup', checkPendingTmuxSnapshotAfterSelectionChange);
+document.addEventListener('keyup', checkPendingTmuxSnapshotAfterSelectionChange);
 
 function escapeHtml(value) {
     return value
