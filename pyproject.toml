@@ -1,6 +1,6 @@
 [project]
 name = "vibe-reader"
-version = "0.2.0"
+version = "0.2.1"
 description = "E-ink friendly web reader for tmux panes, project files, Markdown, and git diffs."
 readme = "README.md"
 authors = [

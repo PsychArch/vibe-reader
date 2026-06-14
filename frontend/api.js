@@ -1,8 +1,12 @@
-export async function fetchJSON(url, errorContext) {
+export async function fetchJSON(url, errorContext, options = {}) {
     let response;
     try {
-        response = await fetch(url);
+        response = await fetch(url, options);
     } catch (networkError) {
+        if (networkError.name === 'AbortError') {
+            throw networkError;
+        }
+
         const error = new Error(`${errorContext}: ${networkError.message}`);
         error.context = errorContext;
         error.url = url;
@@ -61,10 +65,11 @@ export function loadFiles(path) {
     return fetchJSON(`/api/files?path=${encodeURIComponent(path)}`, 'load files');
 }
 
-export function loadFileContent(path, { enableHighlighting }) {
+export function loadFileContent(path, { enableHighlighting, signal } = {}) {
     return fetchJSON(
         `/api/files/content?path=${encodeURIComponent(path)}&highlight=${enableHighlighting}`,
-        'load file'
+        'load file',
+        { signal }
     );
 }
 

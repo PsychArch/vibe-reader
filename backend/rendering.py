@@ -28,8 +28,17 @@ class RenderResult:
     metadata: Dict[str, str] = field(default_factory=dict)
 
 
-def render_text_content(path: Path, content: str, enable_highlighting: bool = True) -> RenderResult:
+def render_text_content(
+    path: Path,
+    content: str,
+    enable_highlighting: bool = True,
+    *,
+    force_plain: bool = False,
+) -> RenderResult:
     """Render text content based on file type."""
+
+    if force_plain:
+        return _render_plain(content)
 
     suffix = path.suffix.lower()
     if suffix in _MARKDOWN_EXTENSIONS:

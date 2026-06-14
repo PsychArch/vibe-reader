@@ -48,6 +48,20 @@ export function createFilesViewController({ dom, state, viewState, api, contentR
         return source === 'staged' ? 'Staged' : 'Unstaged';
     }
 
+    function abortPendingFileContentRequest() {
+        if (!state.currentFileAbortController) {
+            return;
+        }
+
+        state.currentFileAbortController.abort();
+        state.currentFileAbortController = null;
+    }
+
+    function invalidateFileContentRequests() {
+        abortPendingFileContentRequest();
+        state.currentFileRequestId += 1;
+    }
+
     function openFile(path, { isDeleted = false } = {}) {
         if (!path) {
             return;
@@ -58,6 +72,7 @@ export function createFilesViewController({ dom, state, viewState, api, contentR
             return;
         }
         if (isDeleted) {
+            invalidateFileContentRequests();
             callbacks.showToast('Enable diff mode to inspect deleted files.');
             contentRenderer.renderDiffPrompt();
             return;
@@ -66,6 +81,8 @@ export function createFilesViewController({ dom, state, viewState, api, contentR
     }
 
     async function loadGitDiff(path, source = state.diffSource) {
+        invalidateFileContentRequests();
+
         if (!path) {
             contentRenderer.renderDiffPrompt();
             return;
@@ -165,6 +182,7 @@ export function createFilesViewController({ dom, state, viewState, api, contentR
                         setCurrentDirectory(parentPath);
                         state.selectedFile = null;
                         state.selectedFileIsDeleted = false;
+                        invalidateFileContentRequests();
                         contentRenderer.resetFilePreview();
                         loadFileList({ forceStatusRefresh: true });
                     }
@@ -187,6 +205,7 @@ export function createFilesViewController({ dom, state, viewState, api, contentR
                             setCurrentDirectory(file.path);
                             state.selectedFile = null;
                             state.selectedFileIsDeleted = false;
+                            invalidateFileContentRequests();
                             contentRenderer.resetFilePreview();
                             loadFileList();
                         } else {
@@ -241,15 +260,38 @@ export function createFilesViewController({ dom, state, viewState, api, contentR
     }
 
     async function loadFileContent(path) {
+        abortPendingFileContentRequest();
+
+        const requestId = ++state.currentFileRequestId;
+        const abortController = new AbortController();
+        state.currentFileAbortController = abortController;
+        contentRenderer.renderInlineMessage(`Loading ${path}...`);
+
         try {
             const config = readConfig();
             const data = await api.loadFileContent(path, {
-                enableHighlighting: config.enableSyntaxHighlighting
+                enableHighlighting: config.enableSyntaxHighlighting,
+                signal: abortController.signal
             });
+
+            if (requestId !== state.currentFileRequestId) {
+                return;
+            }
+
             contentRenderer.renderFileContent(data);
             dom.fileContentContainer.scrollTop = 0;
+            if (data.metadata?.render_note) {
+                callbacks.showToast(data.metadata.render_note);
+            }
         } catch (error) {
+            if (requestId !== state.currentFileRequestId || error.name === 'AbortError') {
+                return;
+            }
             contentRenderer.renderInlineMessage(error.message);
+        } finally {
+            if (requestId === state.currentFileRequestId) {
+                state.currentFileAbortController = null;
+            }
         }
     }
 

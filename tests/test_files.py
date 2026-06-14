@@ -154,6 +154,64 @@ def test_plain_mode_when_no_lexer(tmp_path):
     assert "line-code" in payload["html"]
 
 
+def test_large_code_file_skips_syntax_highlighting(tmp_path):
+    project_root = tmp_path / "proj"
+    project_root.mkdir()
+    code_file = project_root / "large.py"
+    code_file.write_text("def hello():\n    return 'world'\n" * 20000, encoding="utf-8")
+
+    with client_with_root(project_root) as client:
+        response = client.get(
+            "/api/files/content",
+            params={"path": "large.py"},
+        )
+
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload["render_mode"] == "plain"
+    assert "tok-" not in payload["html"]
+    assert payload["metadata"]["large_file"] == "true"
+    assert payload["metadata"]["render_note"] == "Large file rendered without syntax highlighting."
+
+
+def test_large_markdown_file_skips_markdown_rendering(tmp_path):
+    project_root = tmp_path / "proj"
+    project_root.mkdir()
+    markdown_file = project_root / "large.md"
+    markdown_file.write_text("# Heading\n\n```python\nprint('ok')\n```\n\n" * 35000, encoding="utf-8")
+
+    with client_with_root(project_root) as client:
+        response = client.get(
+            "/api/files/content",
+            params={"path": "large.md"},
+        )
+
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload["render_mode"] == "plain"
+    assert 'class="md-content"' not in payload["html"]
+    assert "tok-" not in payload["html"]
+    assert payload["metadata"]["large_file"] == "true"
+
+
+def test_file_size_limit_still_rejects_oversized_file(tmp_path):
+    project_root = tmp_path / "proj"
+    project_root.mkdir()
+    large_file = project_root / "too-large.txt"
+    large_file.write_bytes(b"x" * (10 * 1024 * 1024 + 1))
+
+    with client_with_root(project_root) as client:
+        response = client.get(
+            "/api/files/content",
+            params={"path": "too-large.txt"},
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "File too large (max 10MB)"
+
+
 def test_list_files_respects_configured_root(tmp_path):
     project_root = tmp_path / "proj"
     project_root.mkdir()

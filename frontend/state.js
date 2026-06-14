@@ -26,7 +26,9 @@ export function createFilesState() {
         diffSource: 'unstaged',
         currentDiffRequestId: 0,
         selectedFileIsDeleted: false,
-        currentFileRenderToken: 0
+        currentFileRenderToken: 0,
+        currentFileRequestId: 0,
+        currentFileAbortController: null
     };
 }
 
