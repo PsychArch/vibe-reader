@@ -10,7 +10,7 @@ requires-python = ">=3.13"
 dependencies = [
     "fastapi==0.140.13",
     "libtmux==0.62.0",
-    "uvicorn==0.49.0",
+    "uvicorn==0.51.0",
     "Pygments==2.20.0",
     "markdown==3.10.2",
     "dulwich==1.2.6",
