@@ -13,7 +13,7 @@ dependencies = [
     "uvicorn==0.51.0",
     "Pygments==2.20.0",
     "markdown==3.10.2",
-    "dulwich==1.2.6",
+    "dulwich==1.2.12",
     "pydantic==2.13.4",
 ]
 
