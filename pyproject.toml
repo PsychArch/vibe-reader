@@ -12,7 +12,7 @@ dependencies = [
     "libtmux==0.62.0",
     "uvicorn==0.51.0",
     "Pygments==2.20.0",
-    "markdown==3.10.2",
+    "markdown==3.10.3",
     "dulwich==1.2.12",
     "pydantic==2.13.4",
 ]
