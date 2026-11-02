@@ -14,7 +14,7 @@ dependencies = [
     "Pygments==2.20.0",
     "markdown==3.11.2",
     "dulwich==1.2.19",
-    "pydantic==2.14.1",
+    "pydantic==2.14.2",
 ]
 
 [project.scripts]
